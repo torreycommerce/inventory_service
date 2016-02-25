@@ -4,24 +4,24 @@ ini_set('display_errors',1);
 
 //  AcendaWorker\Base handles: gearman connection - loads of configs - init of logger
 require_once __DIR__."/../../core/Base.php";
-require_once(__DIR__ . "/classes/FulfillmentService.php");
+require_once(__DIR__ . "/classes/InventoryService.php");
 require_once __DIR__ . "/vendors/autoload.php";
 
-class WorkerFulfillmentService extends AcendaWorker\Base {
-    private $FulfillmentService;
+class WorkerInventoryService extends AcendaWorker\Base {
+    private $InventoryService;
 
     public function __construct() {
         parent::__construct(__DIR__);
     }
 
-    public function FulfillmentService($job) {
-        $this->FulfillmentService = new FulfillmentService(array_merge_recursive($this->configs->service, $this->configs->job), $this->logger, $this->getCouchBase());
-        $this->FulfillmentService->process();
+    public function InventoryService($job) {
+        $this->InventoryService = new InventoryService(array_merge_recursive($this->configs->service, $this->configs->job), $this->logger, $this->getCouchBase());
+        $this->InventoryService->process();
     }
 }
 
 
-$workerFulfillmentService  = new WorkerFulfillmentService();
-$workerFulfillmentService->worker->addFunction('fulfillment',
-                                            [$workerFulfillmentService, 'FulfillmentService']);
-$workerFulfillmentService->worker->work();
+$workerInventoryService  = new WorkerInventoryService();
+$workerInventoryService->worker->addFunction('Inventory',
+                                            [$workerInventoryService, 'InventoryService']);
+$workerInventoryService->worker->work();

@@ -2,7 +2,7 @@
 require_once(__DIR__ . "/Couchbase/LastRunTime.php");
 use phpseclib\Net\SFTP;
 
-class FulfillmentService {
+class InventoryService {
     private $logger;
     private $configs;
     private $subscriber;
@@ -15,7 +15,7 @@ class FulfillmentService {
 
     public function __construct($configs, $logger, $couchbaseCluster) {
         $this->configs = $configs;
-        echo "Shipping ".date("Y-m-d H:i:s")." - {$this->configs['acenda']['store']['name']}\n";
+        echo "Inventory".date("Y-m-d H:i:s")." - {$this->configs['acenda']['store']['name']}\n";
         $this->logger = $logger;
         $this->service_id = $this->configs['acenda']['service']['id'];
         $this->store_id = $this->configs['acenda']['store']['id'];
@@ -91,14 +91,14 @@ class FulfillmentService {
             if(isset($row['order_id'])) {
                 // check to see if we've already processed this row
                 if(!isset($orders[$row['order_id']])) { 
-                    $response=$this->acenda->get('order/'.$row['order_id'].'/fulfillments');
+                    $response=$this->acenda->get('order/'.$row['order_id'].'/Inventorys');
                     if($response->body) {
                         $result = $response->body->result;
                         $orders[$row['order_id']] = $result;
                     }
                 }
                 print_r($orders[$row['order_id']]);                
-                //$this->acenda->post('orderfulfillment',$row);
+                //$this->acenda->post('orderInventory',$row);
             }
         }
         fclose($fp);
