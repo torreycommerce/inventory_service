@@ -22,6 +22,6 @@ class WorkerInventoryService extends AcendaWorker\Base {
 
 
 $workerInventoryService  = new WorkerInventoryService();
-$workerInventoryService->worker->addFunction('Inventory',
+$workerInventoryService->worker->addFunction('inventory',
                                             [$workerInventoryService, 'InventoryService']);
 $workerInventoryService->worker->work();
