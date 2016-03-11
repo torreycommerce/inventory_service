@@ -51,6 +51,7 @@ class InventoryService {
         echo "\n";
         $prefix = $this->configs['acenda']['subscription']['credentials']['file_prefix'];
         $files = $this->getFileList();
+         var_dump($files);
         if(is_array($files)) {
             foreach($files as $file) {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
@@ -232,7 +233,11 @@ class InventoryService {
     private function getFileListFtp($url) {
         $urlParts = parse_url($url);
         $conn_id = ftp_connect($urlParts['host'],@$urlParts['port']?$urlParts['port']:21);
-        if(ftp_login($conn_id,$urlParts['user'], $urlParts['pass'])) {
+        var_dump($urlParts);
+        var_dump($conn_id);
+        echo urldecode($urlParts['user']).' ' . urldecode($urlParts['pass'])."\n";
+        ftp_pasv($conn_id, true);
+        if(ftp_login($conn_id,urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
             $contents = ftp_nlist($conn_id,@$urlParts['path']?$urlParts['path']:'.');
             return $contents;
         }
@@ -246,7 +251,7 @@ class InventoryService {
         $urlParts = parse_url($url);
 
         $this->sftp = new SFTP($urlParts['host'],@$urlParts['port']?$urlParts['port']:22);
-        if (!$this->sftp->login($urlParts['user'], $urlParts['pass'])) {
+        if (!$this->sftp->login(urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
             $this->logger->addError('could not connect via sftp - '.$url);
             return false;
@@ -258,7 +263,7 @@ class InventoryService {
         $urlParts = parse_url($url);
 
         $this->sftp = new SFTP($urlParts['host']);
-        if (!$this->sftp->login($urlParts['user'], $urlParts['pass'])) {
+        if (!$this->sftp->login(urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
             $this->logger->addError('could not connect via sftp - '.$url);
             return false;
@@ -269,7 +274,7 @@ class InventoryService {
     private function renameFileFtp($url,$oldFilename,$newFilename){
         $urlParts = parse_url($url);
         $conn_id = ftp_connect($urlParts['host'],@$urlParts['port']?$urlParts['port']:21);
-        if(!ftp_login($conn_id,$urlParts['user'], $urlParts['pass'])) {
+        if(!ftp_login($conn_id,urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
             array_push($this->errors, 'could not connect via ftp - '.$url);
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
@@ -298,7 +303,7 @@ class InventoryService {
         $urlParts = parse_url($url);
 
         $this->sftp = new SFTP($urlParts['host']);
-        if (!$this->sftp->login($urlParts['user'], $urlParts['pass'])) {
+        if (!$this->sftp->login(urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
             $this->logger->addError('could not connect via sftp - '.$url);
             return false;
@@ -310,7 +315,7 @@ class InventoryService {
     private function getFileFtp($url) {
         $urlParts = parse_url($url);
         $conn_id = ftp_connect($urlParts['host'],@$urlParts['port']?$urlParts['port']:21);
-        if(!ftp_login($conn_id,$urlParts['user'], $urlParts['pass'])) {
+        if(!ftp_login($conn_id,urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
             array_push($this->errors, 'could not connect via ftp - '.$url);
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
