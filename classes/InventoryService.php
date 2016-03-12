@@ -90,9 +90,10 @@ class InventoryService {
         if(isset($response->body->result) && is_array($response->body->result)) {
             foreach($response->body->result as $variant) {
                 if($variant->status!='disabled') {
+                    echo "disabling ".$variant->id."\n";
                     $variant->status='offline';
                     $offlineSkus[] = $variant->sku;
-                    $this->acenda->put('variant',(array)$variant);
+                    $this->acenda->put('variant/'.$variant->id,(array)$variant);
                 }       
             }
         }
@@ -108,14 +109,20 @@ class InventoryService {
         $skus = [];
         $offlineSkus = [];        
         $numRows = 0;
+        // rename file to processed
+        if(!$this->renameFile($this->filename,$this->filename.'.processed')) {
+            echo "could not rename file! ($this->filename)\n";
+	}
 
         while($data=fgetcsv($fp)) {
             $numRows++;
             $row = array_combine($fieldNames,$data);
+            echo "row ".$numRows."\n";
             if(isset($row['sku'])) {
                 $skus[] = $row['sku'];
                 $response = $this->acenda->get('variant',['query'=>['sku'=>$row['sku']]]);
-                if(is_array($response->body->result) && count($response->body->result)) {
+                
+                if(isset($response->body->result) && is_array($response->body->result) && count($response->body->result)) {
                     foreach($response->body->result as $variant)
                     {
                         $updatedVariant = $variant;                    
@@ -164,8 +171,6 @@ class InventoryService {
         $this->acenda->post('event',$eventArr);
 
         fclose($fp);
-        // rename file to processed
-        $this->renameFile($this->filename,$this->filename.'.processed');
     }
 
 // This function check the file and rewrite the file in local under UNIX code
@@ -233,11 +238,9 @@ class InventoryService {
     private function getFileListFtp($url) {
         $urlParts = parse_url($url);
         $conn_id = ftp_connect($urlParts['host'],@$urlParts['port']?$urlParts['port']:21);
-        var_dump($urlParts);
-        var_dump($conn_id);
         echo urldecode($urlParts['user']).' ' . urldecode($urlParts['pass'])."\n";
-        ftp_pasv($conn_id, true);
         if(ftp_login($conn_id,urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
+            ftp_pasv($conn_id, true);
             $contents = ftp_nlist($conn_id,@$urlParts['path']?$urlParts['path']:'.');
             return $contents;
         }
@@ -279,6 +282,7 @@ class InventoryService {
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
         };
+        ftp_pasv($conn_id,true);
         @ftp_chdir($conn_id,($urlParts['path'][0]=='/')?substr($urlParts['path'],1):$urlParts['path']);
         return ftp_rename($conn_id,$oldFilename,$newFilename);
     }
@@ -320,6 +324,7 @@ class InventoryService {
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
         };
+        ftp_pasv($conn_id,true);
         @ftp_chdir($conn_id,($urlParts['path'][0]=='/')?substr($urlParts['path'],1):$urlParts['path']);
         return ftp_get($conn_id,'/tmp/'.basename($url),basename($urlParts['path']),FTP_ASCII );
     } 
