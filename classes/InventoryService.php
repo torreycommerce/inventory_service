@@ -126,6 +126,10 @@ class InventoryService {
                 $response = $this->acenda->get('variant',['query'=>['sku'=>$row['sku']]]);
                 
                 if(isset($response->body->result) && is_array($response->body->result) && count($response->body->result)) {
+
+                    $row['current_price'] = str_replace(['$',','],'',$row['current_price']);
+                    $row['compare_price'] = str_replace(['$',','],'',$row['compare_price']);  
+                    $row['quantity'] = str_replace(['$',','],'',$row['quantity']);                                       
                     foreach($response->body->result as $variant)
                     {
                         $updatedVariant = $variant;                    
