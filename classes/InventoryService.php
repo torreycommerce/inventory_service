@@ -116,7 +116,8 @@ class InventoryService {
 
         while($data=fgetcsv($fp)) {
             $numRows++;
-            $row = array_combine($fieldNames,$data);
+
+            $row = array_combine(array_intersect_key($fieldNames, $data), array_intersect_key($data, $fieldNames));         
             echo "row ".$numRows."\n";
             if(isset($row['sku'])) {
                 $skus[] = $row['sku'];
@@ -126,13 +127,13 @@ class InventoryService {
                     foreach($response->body->result as $variant)
                     {
                         $updatedVariant = $variant;                    
-                        if($row['current_price'] && is_numeric($row['current_price'])) {
+                        if(is_numeric($row['current_price'])) {
                             $updatedVariant->price = $row['current_price'];
                         }
-                        if($row['compare_price'] && is_numeric($row['compare_price'])) {
+                        if(is_numeric($row['compare_price'])) {
                             $updatedVariant->compare_price = $row['compare_price'];
                         }
-                        if($row['quantity'] && is_numeric($row['quantity'])) {
+                        if( is_numeric($row['quantity'])) {
                             $updatedVariant->inventory_quantity = $row['quantity'];
                             if( $updatedVariant->status!= 'disabled' && ($updatedVariant->inventory_quantity < $updatedVariant->inventory_minimum_quantity)) {
                                 $updatedVariant->status='offline';
