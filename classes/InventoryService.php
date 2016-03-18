@@ -85,12 +85,14 @@ class InventoryService {
      * Disable Missing Variants
      */
     private function disableMissing($skus) {
-        $response=$this->acenda->get('variant',['query'=>['sku'=>['nin'=>$skus]]]);
+        print_r($skus);
+
+        $response=$this->acenda->get('variant',['query'=>['sku'=>['$nin'=>$skus]]]);
         $offlineSkus = [];
         if(isset($response->body->result) && is_array($response->body->result)) {
             foreach($response->body->result as $variant) {
                 if($variant->status!='disabled') {
-                    echo "disabling ".$variant->id."\n";
+                    echo "disabling ".$variant->sku."\n";
                     $variant->status='offline';
                     $offlineSkus[] = $variant->sku;
                     $this->acenda->put('variant/'.$variant->id,(array)$variant);
@@ -137,11 +139,13 @@ class InventoryService {
                             $updatedVariant->inventory_quantity = $row['quantity'];
                             if( $updatedVariant->status!= 'disabled' && ($updatedVariant->inventory_quantity < $updatedVariant->inventory_minimum_quantity)) {
                                 $updatedVariant->status='offline';
+                                echo "Setting offline ".$updatedVariant->sku."\n";                           
                                 $totalSetOffline++;
                             }
                             if( $updatedVariant->status!= 'disabled' && ($updatedVariant->inventory_quantity >= $updatedVariant->inventory_minimum_quantity)) {
                                 $updatedVariant->status='active';
                                 $totalSetActive++;
+                                echo "Setting active ".$updatedVariant->sku."\n";
                             }                         
                         } 
                         $this->acenda->put('variant/'.$variant->id,(array)$updatedVariant);                                           
