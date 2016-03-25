@@ -88,7 +88,7 @@ class InventoryService {
         $page=0;
         $offlineIds=[];
         for($i=1 ; $i; $i++) {
-           $response = $this->acenda->get('variant',['query'=>'{"status":{"$neq":"disabled"}}','limit'=>1000,'attributes'=>'sku','page'=>$page]);
+           $response = $this->acenda->get('Variant',['query'=>'{"status":{"$neq":"disabled"}}','limit'=>1000,'attributes'=>'sku','page'=>$page]);
            if($response->code == 429) {
              sleep(3);
              continue;
@@ -133,7 +133,7 @@ class InventoryService {
                 } 
                 if($c==300) { break; }
             }
-            $response = $this->acenda->get('variant',['query'=>['sku'=>['$in'=>$skus]],'limit'=>300]);
+            $response = $this->acenda->get('Variant',['query'=>['sku'=>['$in'=>$skus]],'limit'=>300]);
             if(isset($response->body->result) && is_array($response->body->result)) { 
                 foreach($response->body->result as $variant) {
                     if(isset($storage[$variant->sku])) {
@@ -221,18 +221,30 @@ class InventoryService {
 
         file_put_contents('/tmp/inventorysetoffline.csv',$csv);
 
-        $p_response = $this->acenda->post('import/upload',['model'=>'variant'],['/tmp/inventoryupdates.csv']);
+        $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventoryupdates.csv']);
+        echo "uploading inventory updates\n";
         if(!empty($p_response->body->result)) {
             $token = $p_response->body->result;
             $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"},"inventory_quantity":{"name":"inventory_quantity"},"compare_price":{"name":"compare_price"},"price":{"name":"price"}}}'));
+            print_r($g_response);
+
+        } else {
+             echo "could not upload /tmp/inventoryupdates.csv";
+	     print_r($p_repsonse);
+
         }
 
-        $p_response = $this->acenda->post('import/upload',['model'=>'variant'],['/tmp/inventorysetoffline.csv']);
+        echo "uploading offline setterss\n";
+        $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventorysetoffline.csv']);
         if(!empty($p_response->body->result)) {
             $token = $p_response->body->result;
             $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"} }}'));
-        }
+            print_r($g_response);
+        } else {
+             echo "could not upload /tmp/inventorysetoffline.csv";
+	     print_r($p_repsonse);
 
+        }
         // rename file to processed
        if(!$this->renameFile($this->filename,$this->filename.'.processed')) {
             echo "could not rename file! ($this->filename)\n";
