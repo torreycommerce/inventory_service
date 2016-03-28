@@ -88,7 +88,7 @@ class InventoryService {
         $page=0;
         $offlineIds=[];
         for($i=1 ; $i; $i++) {
-           $response = $this->acenda->get('Variant',['query'=>'{"status":{"$neq":"disabled"}}','limit'=>1000,'attributes'=>'sku','page'=>$page]);
+           $response = $this->acenda->get('Variant',['query'=>'{"status":{"$ne":"disabled"}}','limit'=>1000,'attributes'=>'sku','page'=>$page]);
            if($response->code == 429) {
              sleep(3);
              continue;
@@ -96,7 +96,9 @@ class InventoryService {
            if(!isset($response->body->result)) break;
            if(!count($response->body->result)) break;
            foreach($response->body->result as $r) {
-                $offlineIds[]=$r->id;
+                if(!isset($skus[$r->sku])) {
+                    $offlineIds[]=$r->id;
+                }
            }
            $page++;
         }
@@ -129,7 +131,7 @@ class InventoryService {
                 if(isset($row['sku'])) {
                     $storage[$row['sku']]=["row"=>$row,"data"=>[]];
                     $skus[] = $row['sku'];
-                    $allskus[] = $row['sku'];
+                    $allskus[$row['sku']] = $row['sku'];
                 } 
                 if($c==300) { break; }
             }
@@ -177,7 +179,7 @@ class InventoryService {
                                 $updatedVariant->compare_price = $row['compare_price'];
                                 $changed = 2;                            
                             }
-                            if( is_numeric($row['quantity']) && $row['quantity'] != $updatedVariant->inventory_quantity) {
+                            if( is_numeric($row['quantity']) && $row['quantity'] != $updatedVariant->inventory_quantity || $updatedVariant->status=='offline' ) {
 
                                 $changed = 3;                            
                                 $updatedVariant->inventory_quantity = $row['quantity'];
@@ -234,7 +236,7 @@ class InventoryService {
 
         }
 
-        echo "uploading offline setterss\n";
+        echo "uploading offline setters\n";
         $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventorysetoffline.csv']);
         if(!empty($p_response->body->result)) {
             $token = $p_response->body->result;
