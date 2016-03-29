@@ -10,6 +10,10 @@ class InventoryService {
     private $subscription;
     private $acenda;
     private $errors = [];
+    private $urlParts = [];
+    private $username = '';
+    private $password = '';
+    private $path = '';
 
     public $service_id;
     public $store_id;
@@ -49,9 +53,22 @@ class InventoryService {
         echo "Config:\n";
         var_dump($this->configs);
         echo "\n";
+
+
+        $this->urlParts = parse_url($this->configs['acenda']['subscription']['credentials']['file_url']);
+        $this->username = urldecode($this->urlParts['user']);
+        $this->password = urldecode($this->urlParts['pass']);
+        if(!empty($this->configs['acenda']['subscription']['credentials']['username'])) {
+            $this->username = $this->configs['acenda']['subscription']['credentials']['username'];
+        }
+        if(!empty($this->configs['acenda']['subscription']['credentials']['password'])) {
+            $this->password = $this->configs['acenda']['subscription']['credentials']['password'];
+        }
+
         $prefix = $this->configs['acenda']['subscription']['credentials']['file_prefix'];
         $files = $this->getFileList();
-         var_dump($files);
+        var_dump($files);
+
         if(is_array($files)) {
             foreach($files as $file) {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
@@ -170,12 +187,13 @@ class InventoryService {
                         $row['compare_price'] = str_replace(['$',','],'',$row['compare_price']);  
                         $row['quantity'] = str_replace(['$',','],'',$row['quantity']);                                       
                             $changed = false;
-                            $updatedVariant = $variant;                    
+                            $updatedVariant = $variant; 
+                            print_r($updatedVariant);                   
                             if(is_numeric($row['current_price']) && $row['current_price'] != $updatedVariant->price) {
                                 $updatedVariant->price = $row['current_price'];
                                 $changed = 1;
                             }
-                            if(is_numeric($row['compare_price']) && $row['compare_price'] != $updatedVariant->compare_price) {
+                            if(is_numeric($row['compare_price']) && $row['compare_price'] != @$updatedVariant->compare_price) {
                                 $updatedVariant->compare_price = $row['compare_price'];
                                 $changed = 2;                            
                             }
@@ -232,7 +250,7 @@ class InventoryService {
 
         } else {
              echo "could not upload /tmp/inventoryupdates.csv";
-	     print_r($p_repsonse);
+	     print_r($p_response);
 
         }
 
@@ -244,7 +262,7 @@ class InventoryService {
             print_r($g_response);
         } else {
              echo "could not upload /tmp/inventorysetoffline.csv";
-	     print_r($p_repsonse);
+   	         print_r($p_response);
 
         }
         // rename file to processed
@@ -333,12 +351,11 @@ class InventoryService {
             ]);
     }
     private function getFileListFtp($url) {
-        $urlParts = parse_url($url);
-        $conn_id = ftp_connect($urlParts['host'],@$urlParts['port']?$urlParts['port']:21);
-        echo urldecode($urlParts['user']).' ' . urldecode($urlParts['pass'])."\n";
-        if(ftp_login($conn_id,urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
+        $conn_id = ftp_connect($this->urlParts['host'],@$this->urlParts['port']?$this->urlParts['port']:21);
+
+        if(@ftp_login($conn_id,$this->username, $this->password)) {
             ftp_pasv($conn_id, true);
-            $contents = ftp_nlist($conn_id,@$urlParts['path']?$urlParts['path']:'.');
+            $contents = ftp_nlist($conn_id,@$this->urlParts['path']?$this->urlParts['path']:'.');
             return $contents;
         }
         else {
@@ -348,39 +365,36 @@ class InventoryService {
         }
     }
     private function getFileListSftp($url) {
-        $urlParts = parse_url($url);
 
-        $this->sftp = new SFTP($urlParts['host'],@$urlParts['port']?$urlParts['port']:22);
-        if (!$this->sftp->login(urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
+        $this->sftp = new SFTP($this->urlParts['host'],@$this->urlParts['port']?$this->urlParts['port']:22);
+        if (!$this->sftp->login($this->username, $this->password)) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
             $this->logger->addError('could not connect via sftp - '.$url);
             return false;
         };
-        $files = $this->sftp->nlist(@$urlParts['path']?$urlParts['path']:'.');
+        $files = $this->sftp->nlist(@$this->urlParts['path']?$this->urlParts['path']:'.');
         return $files;
     }
     private function renameFileSftp($url,$oldFilenname,$newFilename) {
-        $urlParts = parse_url($url);
-
-        $this->sftp = new SFTP($urlParts['host']);
-        if (!$this->sftp->login(urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
+        $this->sftp = new SFTP($this->urlParts['host']);
+        if (!$this->sftp->login($this->username, $this->password)) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
             $this->logger->addError('could not connect via sftp - '.$url);
             return false;
         };
-        $this->sftp->chdir($urlParts['path']);
+        $this->sftp->chdir($this->urlParts['path']);
         return $this->sftp->rename($oldFilename,$newFilename);
     }
     private function renameFileFtp($url,$oldFilename,$newFilename){
-        $urlParts = parse_url($url);
-        $conn_id = ftp_connect($urlParts['host'],@$urlParts['port']?$urlParts['port']:21);
-        if(!ftp_login($conn_id,urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
+
+        $conn_id = ftp_connect($this->urlParts['host'],@$this->urlParts['port']?$this->urlParts['port']:21);
+        if(!ftp_login($conn_id,$this->username, $this->password)) {
             array_push($this->errors, 'could not connect via ftp - '.$url);
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
         };
         ftp_pasv($conn_id,true);
-        @ftp_chdir($conn_id,($urlParts['path'][0]=='/')?substr($urlParts['path'],1):$urlParts['path']);
+        @ftp_chdir($conn_id,($this->urlParts['path'][0]=='/')?substr($this->urlParts['path'],1):$this->urlParts['path']);
         return ftp_rename($conn_id,$oldFilename,$newFilename);
     }
     private function renameFile($oldFilename,$newFilename) {
@@ -401,29 +415,26 @@ class InventoryService {
         return $ret;     
     }
     private function getFileSftp($url) {
-        $urlParts = parse_url($url);
-
-        $this->sftp = new SFTP($urlParts['host']);
-        if (!$this->sftp->login(urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
+        $this->sftp = new SFTP($this->urlParts['host']);
+        if (!$this->sftp->login($this->username,$this->password)) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
             $this->logger->addError('could not connect via sftp - '.$url);
             return false;
         };
-        $this->sftp->chdir($urlParts['path']);
-        $data = $this->sftp->get(basename($urlParts['path']));
+        $this->sftp->chdir($this->urlParts['path']);
+        $data = $this->sftp->get(basename($url));
         return @file_put_contents('/tmp/'.basename($url),$data); 
     }
     private function getFileFtp($url) {
-        $urlParts = parse_url($url);
-        $conn_id = ftp_connect($urlParts['host'],@$urlParts['port']?$urlParts['port']:21);
-        if(!ftp_login($conn_id,urldecode($urlParts['user']), urldecode($urlParts['pass']))) {
+        $conn_id = ftp_connect($this->urlParts['host'],@$this->urlParts['port']?$this->urlParts['port']:21);
+        if(!ftp_login($conn_id,$this->username, $this->password)) {
             array_push($this->errors, 'could not connect via ftp - '.$url);
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
         };
         ftp_pasv($conn_id,true);
-        @ftp_chdir($conn_id,($urlParts['path'][0]=='/')?substr($urlParts['path'],1):$urlParts['path']);
-        return ftp_get($conn_id,'/tmp/'.basename($url),basename($urlParts['path']),FTP_ASCII );
+        @ftp_chdir($conn_id,($this->urlParts['path'][0]=='/')?substr($this->urlParts['path'],1):$this->urlParts['path']);
+        return ftp_get($conn_id,'/tmp/'.basename($url),basename($url),FTP_ASCII );
     } 
 
     private function getFileList() {
