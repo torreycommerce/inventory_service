@@ -14,6 +14,7 @@ class InventoryService {
     private $username = '';
     private $password = '';
     private $path = '';
+    private $key = '';
 
     public $service_id;
     public $store_id;
@@ -41,7 +42,7 @@ class InventoryService {
     }
 
     public function process() {
-        echo "Processing\n";
+        echo "Processing \n";
         $last_time_ran = $this->lastRunTime->getDatetime('lastTime');
         echo "LastRunTime: ".date("Y-m-d H:i:s",$last_time_ran->getTimestamp())."\n";
         $tmp_query = (!empty($this->subscription['credentials']['query'])) ? json_decode($this->subscription['credentials']['query'], true) : [];
@@ -55,6 +56,10 @@ class InventoryService {
         echo "\n";
 
 
+        if(!isset($this->configs['acenda']['subscription']['credentials']['key_type'])) {
+            $this->configs['acenda']['subscription']['credentials']['key_type'] = 'sku';
+        }
+        $this->key =  $this->configs['acenda']['subscription']['credentials']['key_type'];
         $this->urlParts = parse_url($this->configs['acenda']['subscription']['credentials']['file_url']);
         $this->username = urldecode($this->urlParts['user']);
         $this->password = urldecode($this->urlParts['pass']);
@@ -67,8 +72,6 @@ class InventoryService {
 
         $prefix = $this->configs['acenda']['subscription']['credentials']['file_prefix'];
         $files = $this->getFileList();
-        var_dump($files);
-
         if(is_array($files)) {
             foreach($files as $file) {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
@@ -105,15 +108,17 @@ class InventoryService {
         $page=0;
         $offlineIds=[];
         for($i=1 ; $i; $i++) {
-           $response = $this->acenda->get('Variant',['query'=>'{"status":{"$ne":"disabled"}}','limit'=>1000,'attributes'=>'sku','page'=>$page]);
+           $response = $this->acenda->get('Variant',['query'=>'{"status":{"$ne":"disabled"}}','limit'=>1000,'attributes'=>$this->key,'page'=>$page]);
            if($response->code == 429) {
              sleep(3);
              continue;
            }
            if(!isset($response->body->result)) break;
            if(!count($response->body->result)) break;
+
+           $keytype = $this->key;
            foreach($response->body->result as $r) {
-                if(!isset($skus[$r->sku])) {
+                if(!isset($skus[$r->$keytype])) {
                     $offlineIds[]=$r->id;
                 }
            }
@@ -123,9 +128,15 @@ class InventoryService {
        return $offlineIds;
     }
     private function processFile(){
-        echo "processing file {$this->path}\n";
+        echo "processing file {$this->path} for {$this->key}\n";
+        // write an event
+        $eventArr= ['subject_type' => 'inventory', 'subject_id' =>$this->filename, 'message' => "Inventory Feed Started" ,
+                 'verb' => 'success'];
+        $this->acenda->post('event',$eventArr);
+
+
         $fp = fopen($this->path,'r');
-        $fieldNames = ['sku','current_price','compare_price','quantity'];
+        $fieldNames = [$this->key,'current_price','compare_price','quantity'];
         $totalSetOffline = 0;
         $totalSetActive = 0;
         $allskus = [];
@@ -145,50 +156,53 @@ class InventoryService {
                // if(!$c) break;
 
                 $row = array_combine(array_intersect_key($fieldNames, $data), array_intersect_key($data, $fieldNames)); 
-                if(isset($row['sku'])) {
-                    $storage[$row['sku']]=["row"=>$row,"data"=>[]];
-                    $skus[] = $row['sku'];
-                    $allskus[$row['sku']] = $row['sku'];
+                if(isset($row[$this->key])) {
+                    $storage[$row[$this->key]]=["row"=>$row,"data"=>[]];
+                    $skus[] = $row[$this->key];
+                    $allskus[$row[$this->key]] = $row[$this->key];
                 } 
                 if($c==300) { break; }
             }
-            $response = $this->acenda->get('Variant',['query'=>['sku'=>['$in'=>$skus]],'limit'=>300]);
-            if(isset($response->body->result) && is_array($response->body->result)) { 
-                foreach($response->body->result as $variant) {
-                    if(isset($storage[$variant->sku])) {
-                       $storage[$variant->sku]['data']=$variant;
-                   }
-                }
-            } else {
-                if($response->code == 429) {
-                     sleep(1); 
-                    continue;
-                }
-                // big problems
-                echo "big problems\n";
-                print_r($response);
-                break;
-            } 
-            if(!count($storage)) { 
-                echo "nothing to do\n";
-                break;
-            }
+            $response = null;
 
+            if(count($skus)) {
+                $response = $this->acenda->get('Variant',['query'=>[$this->key=>['$in'=>$skus]],'limit'=>300]);
+                if(isset($response->body->result) && is_array($response->body->result)) { 
+                    $keytype = $this->key;
+                    foreach($response->body->result as $variant) {
+                        if(isset($storage[($variant->$keytype)])) {
+                           $storage[($variant->$keytype)]['data']=$variant;
+                       }
+                    }
+                } else {
+                    if($response && $response->code == 429) {
+                         sleep(1); 
+                        continue;
+                    }
+                    // big problems
+                    echo "big problems\n";
+                    print_r($response);
+                    break;
+                } 
+                if(!count($storage)) { 
+                    echo "nothing to do\n";
+                    break;
+                }
+            }
+            if(!count($storage)) break; 
             foreach($storage as $i=>$d) { 
                 $numRows++;
                 $row = $d['row'];
                 $variant = $d['data'];
                 if(!is_object($variant)) continue;
-              //  echo "row ".$numRows."\n";
-                if(isset($row['sku'])) {
-                    $skus[] = $row['sku'];
+                if(isset($row[$this->key])) {
+                    $skus[] = $row[$this->key];
 
                         $row['current_price'] = str_replace(['$',','],'',$row['current_price']);
                         $row['compare_price'] = str_replace(['$',','],'',$row['compare_price']);  
                         $row['quantity'] = str_replace(['$',','],'',$row['quantity']);                                       
                             $changed = false;
-                            $updatedVariant = $variant; 
-                            print_r($updatedVariant);                   
+                            $updatedVariant = $variant;                   
                             if(is_numeric($row['current_price']) && $row['current_price'] != $updatedVariant->price) {
                                 $updatedVariant->price = $row['current_price'];
                                 $changed = 1;
@@ -199,21 +213,21 @@ class InventoryService {
                             }
                             if( is_numeric($row['quantity']) && $row['quantity'] != $updatedVariant->inventory_quantity || $updatedVariant->status=='offline' ) {
 
-                                $changed = 3;                            
+                                $changed = 3;         
+                                $keytype = $this->key;                   
                                 $updatedVariant->inventory_quantity = $row['quantity'];
                                 if( $updatedVariant->status!= 'disabled' && ($updatedVariant->inventory_quantity < $updatedVariant->inventory_minimum_quantity)) {
                                     $updatedVariant->status='offline';
-                                    echo "Setting offline ".$updatedVariant->sku."\n";                           
+                                    echo "Setting offline ".$updatedVariant->$keytype."\n";                           
                                     $totalSetOffline++;
                                 }
                                 if( $updatedVariant->status!= 'disabled' && ($updatedVariant->inventory_quantity >= $updatedVariant->inventory_minimum_quantity)) {
                                     $updatedVariant->status='active';
                                     $totalSetActive++;
-                                    echo "Setting active ".$updatedVariant->sku."\n";
+                                    echo "Setting active ".$updatedVariant->$keytype."\n";
                                 }                         
                             } 
-                            if($changed) {
-                                echo "changed: $changed\n";                                
+                            if($changed) {                         
                                 $csv_line = '';    
                                 $csv_line .= $variant->id.',"';
                                 $csv_line .= $updatedVariant->status.'",';                                                             
@@ -250,8 +264,7 @@ class InventoryService {
 
         } else {
              echo "could not upload /tmp/inventoryupdates.csv";
-	     print_r($p_response);
-
+	         print_r($p_response);
         }
 
         echo "uploading offline setters\n";
@@ -280,7 +293,7 @@ class InventoryService {
              ,$headers);
 
         // write an event
-        $eventArr= ['subject_type' => 'import', 'subject_id' =>$this->filename, 'message' => "Inventory Feed processed" ,
+        $eventArr= ['subject_type' => 'inventory', 'subject_id' =>$this->filename, 'message' => "Inventory Feed processed" ,
                  'verb' => 'success'];
         $this->acenda->post('event',$eventArr);
 
