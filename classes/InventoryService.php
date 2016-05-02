@@ -255,11 +255,17 @@ class InventoryService {
 
         file_put_contents('/tmp/inventorysetoffline.csv',$csv);
 
-        $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventoryupdates.csv']);
+        while($p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventoryupdates.csv'])->code == 429) {
+            sleep(3);
+            echo "retrying..\n";
+        } 
         echo "uploading inventory updates\n";
         if(!empty($p_response->body->result)) {
             $token = $p_response->body->result;
-            $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"},"inventory_quantity":{"name":"inventory_quantity"},"compare_price":{"name":"compare_price"},"price":{"name":"price"}}}'));
+            while($g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"},"inventory_quantity":{"name":"inventory_quantity"},"compare_price":{"name":"compare_price"},"price":{"name":"price"}}}'))->code==429) {
+                sleep(3);
+                echo "retrying..\n";                
+            }
             print_r($g_response);
 
         } else {
@@ -268,10 +274,16 @@ class InventoryService {
         }
 
         echo "uploading offline setters\n";
-        $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventorysetoffline.csv']);
+        while($p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventorysetoffline.csv'])->code == 429) {
+                sleep(3);
+                echo "retrying..\n";    
+        }
         if(!empty($p_response->body->result)) {
             $token = $p_response->body->result;
-            $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"} }}'));
+            while($g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"} }}'))->code == 429 ) {
+                sleep(3);
+                echo "retrying..\n";         
+            }
             print_r($g_response);
         } else {
              echo "could not upload /tmp/inventorysetoffline.csv";
