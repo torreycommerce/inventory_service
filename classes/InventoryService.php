@@ -254,15 +254,22 @@ class InventoryService {
         }   
 
         file_put_contents('/tmp/inventorysetoffline.csv',$csv);
-
-        while($p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventoryupdates.csv'])->code == 429) {
+        $code = 429;
+        while($code == 429) {
+            $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventoryupdates.csv']);
+            $code = $p_response->code;
+            if($code !== 429) break;             
             sleep(3);
             echo "retrying..\n";
         } 
         echo "uploading inventory updates\n";
         if(!empty($p_response->body->result)) {
             $token = $p_response->body->result;
-            while($g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"},"inventory_quantity":{"name":"inventory_quantity"},"compare_price":{"name":"compare_price"},"price":{"name":"price"}}}'))->code==429) {
+            $code = 429;
+            while($code == 429) {
+                $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"},"inventory_quantity":{"name":"inventory_quantity"},"compare_price":{"name":"compare_price"},"price":{"name":"price"}}}'));
+                $code=$g_response->code;
+                if($code !== 429) break; 
                 sleep(3);
                 echo "retrying..\n";                
             }
@@ -274,16 +281,24 @@ class InventoryService {
         }
 
         echo "uploading offline setters\n";
-        while($p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventorysetoffline.csv'])->code == 429) {
-                sleep(3);
-                echo "retrying..\n";    
+        $code = 429;
+        while($code == 429) {
+            $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventorysetoffline.csv']);
+            $code=$p_response->code;
+            if($code !== 429) break;         
+            sleep(3);
+            echo "retrying..\n";    
         }
         if(!empty($p_response->body->result)) {
             $token = $p_response->body->result;
-            while($g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"} }}'))->code == 429 ) {
+            $code = 429;
+            while($code == 429) {            
+                $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"} }}'));
+                $code=$g_response->code;
+                if($code !== 429) break;
                 sleep(3);
-                echo "retrying..\n";         
-            }
+                echo "retrying..\n";                   
+            }         
             print_r($g_response);
         } else {
              echo "could not upload /tmp/inventorysetoffline.csv";
@@ -291,7 +306,7 @@ class InventoryService {
 
         }
         // rename file to processed
-       if(!$this->renameFile($this->filename,$this->filename.'.processed')) {
+        if(!$this->renameFile($this->filename,$this->filename.'.processed')) {
             echo "could not rename file! ($this->filename)\n";
         }
         // Send the email    
