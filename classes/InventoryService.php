@@ -241,14 +241,14 @@ class InventoryService {
         }
 
         file_put_contents('/tmp/inventoryupdates.csv',$csv);
-        $csv = 'id,status'."\r\n";
+        $csv = 'id,status,inventory_quantity'."\r\n";
 
 
         // add the lines to disable missing products
         if(@$this->configs['acenda']['subscription']['credentials']['disable_missing']) {
             $offlineIds=$this->getMissing($allskus);
             foreach($offlineIds as $id) {
-                $csv.="$id,\"offline\"\r\n";
+                $csv.="$id,\"offline\",0\r\n";
             }
             $totalSetOffline+=count($offlineIds);
         }   
