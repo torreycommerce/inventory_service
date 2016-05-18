@@ -218,6 +218,8 @@ class InventoryService {
                                 $updatedVariant->inventory_quantity = $row['quantity'];
                                 if( $updatedVariant->status!= 'disabled' && ($updatedVariant->inventory_quantity < $updatedVariant->inventory_minimum_quantity)) {
                                     $updatedVariant->status='offline';
+                                    $updatedVariant->inventory_quantity = 0;
+
                                     echo "Setting offline ".$updatedVariant->$keytype."\n";                           
                                     $totalSetOffline++;
                                 }
