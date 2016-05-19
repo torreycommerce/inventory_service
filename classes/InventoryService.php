@@ -242,7 +242,7 @@ class InventoryService {
             }
         }
 
-        file_put_contents('/tmp/inventoryupdates.csv',$csv);
+        file_put_contents('/tmp/'.basename($this->filename,'.csv').'-iu.csv',$csv);
         $csv = 'id,status,inventory_quantity'."\r\n";
 
 
@@ -255,10 +255,10 @@ class InventoryService {
             $totalSetOffline+=count($offlineIds);
         }   
 
-        file_put_contents('/tmp/inventorysetoffline.csv',$csv);
+        file_put_contents('/tmp/'.basename($this->filename,'.csv').'-io.csv',$csv);
         $code = 429;
         while($code == 429) {
-            $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventoryupdates.csv']);
+            $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/'.basename($this->filename,'.csv').'-iu.csv']);
             $code = $p_response->code;
             if($code !== 429) break;             
             sleep(3);
@@ -285,7 +285,7 @@ class InventoryService {
         echo "uploading offline setters\n";
         $code = 429;
         while($code == 429) {
-            $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/inventorysetoffline.csv']);
+            $p_response = $this->acenda->post('import/upload',['model'=>'Variant'],['/tmp/'.basename($this->filename,'.csv').'-io.csv']);
             $code=$p_response->code;
             if($code !== 429) break;         
             sleep(3);
