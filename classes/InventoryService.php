@@ -108,7 +108,7 @@ class InventoryService {
         $page=0;
         $offlineIds=[];
         for($i=1 ; $i; $i++) {
-           $response = $this->acenda->get('Variant',['query'=>'{"status":{"$ne":"disabled"}}','limit'=>1000,'attributes'=>$this->key,'page'=>$page]);
+           $response = $this->acenda->get('Variant',['query'=>'{"status":{"$ne":"disabled"}}','limit'=>1000,'attributes'=>$this->key,'sort'=>'id:-1',page'=>$page]);
            if($response->code == 429) {
              sleep(3);
              continue;
