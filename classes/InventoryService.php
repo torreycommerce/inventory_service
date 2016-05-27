@@ -11,8 +11,11 @@ class InventoryService {
     private $acenda;
     private $errors = [];
     private $urlParts = [];
+    private $host = '';
     private $username = '';
     private $password = '';
+    private $protocol = 'ftp';
+    private $remote_path = '';
     private $path = '';
     private $key = '';
 
@@ -55,23 +58,39 @@ class InventoryService {
         var_dump($this->configs);
         echo "\n";
 
-
         if(!isset($this->configs['acenda']['subscription']['credentials']['key_type'])) {
             $this->configs['acenda']['subscription']['credentials']['key_type'] = 'sku';
         }
         $this->key =  $this->configs['acenda']['subscription']['credentials']['key_type'];
         $this->urlParts = parse_url($this->configs['acenda']['subscription']['credentials']['file_url']);
-        $this->username = urldecode($this->urlParts['user']);
-        $this->password = urldecode($this->urlParts['pass']);
+        if(empty($this->urlParts['host'])) {
+            $this->host= $this->configs['acenda']['subscription']['credentials']['file_url'];
+        } else {
+            $this->host = $this->urlParts['host'];
+        }
+
+        $this->username = urldecode(@$this->urlParts['user']);
+        $this->password = urldecode(@$this->urlParts['pass']);
+        $this->protocol = strtok($this->configs['acenda']['subscription']['credentials']['file_url'],':/'); 
+
+
         if(!empty($this->configs['acenda']['subscription']['credentials']['username'])) {
             $this->username = $this->configs['acenda']['subscription']['credentials']['username'];
         }
         if(!empty($this->configs['acenda']['subscription']['credentials']['password'])) {
             $this->password = $this->configs['acenda']['subscription']['credentials']['password'];
         }
-
+        if(!empty($this->configs['acenda']['subscription']['credentials']['protocol'])) {
+            $this->protocol = $this->configs['acenda']['subscription']['credentials']['protocol'];
+        }
+        if(empty($this->urlParts['path']) || $this->urlParts['path'] == $this->host) {
+            $this->remote_path = '.';
+        } else {
+            $this->remote_path = $this->urlParts['path'];
+        }
         $prefix = $this->configs['acenda']['subscription']['credentials']['file_prefix'];
         $files = $this->getFileList();
+        print_r($files);
         if(is_array($files)) {
             foreach($files as $file) {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
@@ -393,11 +412,14 @@ class InventoryService {
             ]);
     }
     private function getFileListFtp($url) {
-        $conn_id = ftp_connect($this->urlParts['host'],@$this->urlParts['port']?$this->urlParts['port']:21);
+
+        echo "connecting to ".$this->host."\nwith ".$this->username.":".$this->password."\n";
+        $conn_id = ftp_connect($this->host,@$this->urlParts['port']?$this->urlParts['port']:21);
 
         if(@ftp_login($conn_id,$this->username, $this->password)) {
             ftp_pasv($conn_id, true);
-            $contents = ftp_nlist($conn_id,@$this->urlParts['path']?$this->urlParts['path']:'.');
+            $contents = ftp_nlist($conn_id,$this->remote_path);
+            print_r($contents);
             return $contents;
         }
         else {
@@ -408,41 +430,41 @@ class InventoryService {
     }
     private function getFileListSftp($url) {
 
-        $this->sftp = new SFTP($this->urlParts['host'],@$this->urlParts['port']?$this->urlParts['port']:22);
+        $this->sftp = new SFTP($this->host,@$this->urlParts['port']?$this->urlParts['port']:22);
         if (!$this->sftp->login($this->username, $this->password)) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
             $this->logger->addError('could not connect via sftp - '.$url);
             return false;
         };
-        $files = $this->sftp->nlist(@$this->urlParts['path']?$this->urlParts['path']:'.');
+        $files = $this->sftp->nlist($this->remote_path);
         return $files;
     }
     private function renameFileSftp($url,$oldFilenname,$newFilename) {
-        $this->sftp = new SFTP($this->urlParts['host']);
+        $this->sftp = new SFTP($this->host);
         if (!$this->sftp->login($this->username, $this->password)) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
             $this->logger->addError('could not connect via sftp - '.$url);
             return false;
         };
-        $this->sftp->chdir($this->urlParts['path']);
+        $this->sftp->chdir($this->remote_path);
         return $this->sftp->rename($oldFilename,$newFilename);
     }
     private function renameFileFtp($url,$oldFilename,$newFilename){
 
-        $conn_id = ftp_connect($this->urlParts['host'],@$this->urlParts['port']?$this->urlParts['port']:21);
+        $conn_id = ftp_connect($this->host,@$this->urlParts['port']?$this->urlParts['port']:21);
         if(!ftp_login($conn_id,$this->username, $this->password)) {
             array_push($this->errors, 'could not connect via ftp - '.$url);
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
         };
         ftp_pasv($conn_id,true);
-        @ftp_chdir($conn_id,($this->urlParts['path'][0]=='/')?substr($this->urlParts['path'],1):$this->urlParts['path']);
+        @ftp_chdir($conn_id,($this->remote_path[0]=='/')?substr($this->remote_path,1):$this->remote_path);
         return ftp_rename($conn_id,$oldFilename,$newFilename);
     }
     private function renameFile($oldFilename,$newFilename) {
         echo "renaming $oldFilename to $newFilename\n";
-        $protocol = strtok($this->configs['acenda']['subscription']['credentials']['file_url'],':/');
-        switch($protocol) {
+        $protocol = $this->protocol;
+        switch(strtolower($protocol)) {
             case 'sftp':
             $ret=$this->renameFileSftp($this->configs['acenda']['subscription']['credentials']['file_url'],$oldFilename,$newFilename);
             break;
@@ -457,31 +479,31 @@ class InventoryService {
         return $ret;     
     }
     private function getFileSftp($url) {
-        $this->sftp = new SFTP($this->urlParts['host']);
+        $this->sftp = new SFTP($this->host);
         if (!$this->sftp->login($this->username,$this->password)) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
             $this->logger->addError('could not connect via sftp - '.$url);
             return false;
         };
-        $this->sftp->chdir($this->urlParts['path']);
+        $this->sftp->chdir($this->remote_path);
         $data = $this->sftp->get(basename($url));
         return @file_put_contents('/tmp/'.basename($url),$data); 
     }
     private function getFileFtp($url) {
-        $conn_id = ftp_connect($this->urlParts['host'],@$this->urlParts['port']?$this->urlParts['port']:21);
+        $conn_id = ftp_connect($this->host,@$this->urlParts['port']?$this->urlParts['port']:21);
         if(!ftp_login($conn_id,$this->username, $this->password)) {
             array_push($this->errors, 'could not connect via ftp - '.$url);
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
         };
         ftp_pasv($conn_id,true);
-        @ftp_chdir($conn_id,($this->urlParts['path'][0]=='/')?substr($this->urlParts['path'],1):$this->urlParts['path']);
+        @ftp_chdir($conn_id,($this->remote_path[0]=='/')?substr($this->remote_path,1):$this->remote_path);
         return ftp_get($conn_id,'/tmp/'.basename($url),basename($url),FTP_ASCII );
     } 
 
     private function getFileList() {
-        $protocol = strtok($this->configs['acenda']['subscription']['credentials']['file_url'],':/');
-        switch($protocol) {
+        $protocol = $this->protocol;
+        switch(strtolower($protocol)) {
             case 'sftp':
             $files=$this->getFileListSftp($this->configs['acenda']['subscription']['credentials']['file_url']);
             break;
@@ -497,8 +519,8 @@ class InventoryService {
     }
 
     private function getFile($filename){
-        $protocol = strtok($this->configs['acenda']['subscription']['credentials']['file_url'],':/');
-        switch($protocol) {
+        $protocol = $this->protocol;
+        switch(strtolower($protocol)) {
             case 'sftp':
             $resp=$this->getFileSftp($this->configs['acenda']['subscription']['credentials']['file_url'].'/'.$filename);
             break;
