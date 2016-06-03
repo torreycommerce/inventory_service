@@ -90,7 +90,6 @@ class InventoryService {
         }
         $prefix = $this->configs['acenda']['subscription']['credentials']['file_prefix'];
         $files = $this->getFileList();
-        print_r($files);
         if(is_array($files)) {
             foreach($files as $file) {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
@@ -534,7 +533,7 @@ class InventoryService {
         }
         if($resp){
             $info = pathinfo($this->configs['acenda']['subscription']['credentials']['file_url'].'/'.$filename);
-            switch($info["extension"]){
+            switch(strtolower($info["extension"])){
                 case "csv":
                 $this->CSVFileCheck('/tmp/'.$filename);
                 break;
