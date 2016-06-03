@@ -180,12 +180,12 @@ class InventoryService {
                     $skus[] = $row[$this->key];
                     $allskus[$row[$this->key]] = $row[$this->key];
                 } 
-                if($c==300) { break; }
+                if($c==100) { break; }
             }
             $response = null;
 
             if(count($skus)) {
-                $response = $this->acenda->get('Variant',['query'=>[$this->key=>['$in'=>$skus]],'limit'=>300]);
+                $response = $this->acenda->get('Variant',['query'=>[$this->key=>['$in'=>$skus]],'limit'=>200]);
                 if(isset($response->body->result) && is_array($response->body->result)) { 
                     $keytype = $this->key;
                     foreach($response->body->result as $variant) {
@@ -201,6 +201,7 @@ class InventoryService {
                     // big problems
                     echo "big problems\n";
                     print_r($response);
+                    echo "query: ". print_r(['query'=>[$this->key=>['$in'=>$skus]],'limit'=>200],true);
                     break;
                 } 
                 if(!count($storage)) { 
