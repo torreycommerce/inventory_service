@@ -336,7 +336,7 @@ class InventoryService {
         $headers .= "Reply-To: no-reply@acenda.com\r\n";
         $headers .= "Return-Path: no-reply@acenda.com\r\n";
         mail($this->configs['acenda']['subscription']['credentials']['email_to'],
-            'Processed Inventory Feed File - '.$this->filename,
+            'Processing Inventory Feed File - '.$this->filename,
              $template->render($this->configs['acenda']['subscription']['credentials']['email_template'], ['filename'=>$this->filename,'totalSetOffline'=>$totalSetOffline,'totalSetActive'=>$totalSetActive,'numRows'=>$numRows,'skus'=>$skus,'negativeSkus'=>$offlineSkus])
              ,$headers);
 
@@ -439,7 +439,7 @@ class InventoryService {
         $files = $this->sftp->nlist($this->remote_path);
         return $files;
     }
-    private function renameFileSftp($url,$oldFilenname,$newFilename) {
+    private function renameFileSftp($url,$oldFilename,$newFilename) {
         $this->sftp = new SFTP($this->host);
         if (!$this->sftp->login($this->username, $this->password)) {
             array_push($this->errors, 'could not connect via sftp - '.$url);
