@@ -161,7 +161,9 @@ class InventoryService {
         $offlineSkus = [];        
         $numRows = 0;
         $csv = [];
-        $csv = '"id","status","inventory_quantity","compare_price","price"'."\r\n";
+      //  $csv = '"id","status","inventory_quantity","compare_price","price"'."\r\n";
+        $csv = '"id","inventory_quantity","compare_price","price"'."\r\n";
+
 
         // process 1000 rows at a time
         $data = [];
@@ -251,7 +253,7 @@ class InventoryService {
                             if($changed) {                         
                                 $csv_line = '';    
                                 $csv_line .= $variant->id.',"';
-                                $csv_line .= $updatedVariant->status.'",';                                                             
+                              //  $csv_line .= $updatedVariant->status.'",';                                                             
                                 $csv_line .= $updatedVariant->inventory_quantity.',';
                                 $csv_line .= $updatedVariant->compare_price.',';
                                 $csv_line .= $updatedVariant->price."\r\n";
@@ -262,14 +264,15 @@ class InventoryService {
         }
 
         file_put_contents('/tmp/'.basename($this->filename,'.csv').'-iu.csv',$csv);
-        $csv = 'id,status,inventory_quantity'."\r\n";
+       // $csv = 'id,status,inventory_quantity'."\r\n";
+        $csv = 'id,inventory_quantity'."\r\n";
 
 
         // add the lines to disable missing products
         if(@$this->configs['acenda']['subscription']['credentials']['disable_missing']) {
             $offlineIds=$this->getMissing($allskus);
             foreach($offlineIds as $id) {
-                $csv.="$id,\"offline\",0\r\n";
+                $csv.="$id,0\r\n";
             }
             $totalSetOffline+=count($offlineIds);
         }   
