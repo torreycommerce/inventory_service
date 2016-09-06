@@ -252,7 +252,7 @@ class InventoryService {
                             } 
                             if($changed) {                         
                                 $csv_line = '';    
-                                $csv_line .= $variant->id.',"';
+                                $csv_line .= $variant->id.',';
                               //  $csv_line .= $updatedVariant->status.'",';                                                             
                                 $csv_line .= $updatedVariant->inventory_quantity.',';
                                 $csv_line .= $updatedVariant->compare_price.',';
