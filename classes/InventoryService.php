@@ -232,23 +232,11 @@ class InventoryService {
                                 $updatedVariant->compare_price = $row['compare_price'];
                                 $changed = 2;                            
                             }
-                            if( is_numeric($row['quantity']) && $row['quantity'] != $updatedVariant->inventory_quantity || $updatedVariant->status=='offline' ) {
+                            if( is_numeric($row['quantity']) && $row['quantity'] != $updatedVariant->inventory_quantity ) {
 
                                 $changed = 3;         
                                 $keytype = $this->key;                   
-                                $updatedVariant->inventory_quantity = $row['quantity'];
-                                if( $updatedVariant->status!= 'disabled' && ($updatedVariant->inventory_quantity < $updatedVariant->inventory_minimum_quantity)) {
-                                    $updatedVariant->status='offline';
-                             //       $updatedVariant->inventory_quantity = 0;
-
-                                    echo "Setting offline ".$updatedVariant->$keytype."\n";                           
-                                    $totalSetOffline++;
-                                }
-                                if( $updatedVariant->status!= 'disabled' && ($updatedVariant->inventory_quantity >= $updatedVariant->inventory_minimum_quantity)) {
-                                    $updatedVariant->status='active';
-                                    $totalSetActive++;
-                                    echo "Setting active ".$updatedVariant->$keytype."\n";
-                                }                         
+                                $updatedVariant->inventory_quantity = $row['quantity'];                      
                             } 
                             if($changed) {                         
                                 $csv_line = '';    
