@@ -279,7 +279,7 @@ class InventoryService {
             $token = $p_response->body->result;
             $code = 429;
             while($code == 429) {
-                $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"},"inventory_quantity":{"name":"inventory_quantity"},"compare_price":{"name":"compare_price"},"price":{"name":"price"}}}'));
+                $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"inventory_quantity":{"name":"inventory_quantity"},"compare_price":{"name":"compare_price"},"price":{"name":"price"}}}'));
                 $code=$g_response->code;
                 if($code !== 429) break; 
                 sleep(3);
@@ -305,7 +305,7 @@ class InventoryService {
             $token = $p_response->body->result;
             $code = 429;
             while($code == 429) {            
-                $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"status":{"name":"status"},"inventory_quantity":{"name":"inventory_quantity"} }}'));
+                $g_response = $this->acenda->post('import/queue/'.$token,(array)json_decode('{"import":{"id":{"name":"id","match":true},"inventory_quantity":{"name":"inventory_quantity"} }}'));
                 $code=$g_response->code;
                 if($code !== 429) break;
                 sleep(3);
