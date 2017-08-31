@@ -4,12 +4,12 @@ ENV ACENDA_MODE production
 
 USER root
 
-COPY . /app/services/inventory_service
+COPY . /app/services/service_worker
 
-WORKDIR /app/services/inventory_service
+WORKDIR /app/services/service_worker
 
-RUN composer install
+RUN composer install --no-dev 
 
 USER www-data
 
-CMD ["php", "-f", "/app/services/inventory_service/worker.php" ]
+CMD ["php", "-f", "/app/services/service_worker/worker.php" ]
