@@ -93,7 +93,7 @@ class InventoryService {
         if(is_array($files)) {
             foreach($files as $file) {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
-                if(strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'csv') continue;
+                if(strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'csv' && strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'txt' ) continue;
                 echo "getting ". $file . "\n";
                 $this->getFile($file);               
             }
@@ -372,7 +372,7 @@ class InventoryService {
                 foreach($directories as $dir){
                     if ($dir != "." && $dir != ".."){
                         $i = pathinfo($where."/".$dir);
-                        if (isset($i['extension']) && $i['extension'] === 'csv'){
+                        if (isset($i['extension']) && $i['extension'] === 'csv' || $i['extension'] === 'txt'){
                             $this->CSVFileCheck($where."/".$dir);
                         }else{
                             array_push($this->errors, "A file in the extracted folder (".$i['filename'].") is not valid.");
@@ -382,7 +382,7 @@ class InventoryService {
                 }
             }else{
                 $i = pathinfo($where);
-                if ($i['extension'] === 'csv'){
+                if ($i['extension'] === 'csv' || $i['extension'] === 'txt' ){
                     $this->checkFileFromZip($where);
                 }else{
                     array_push($this->errors, "The file extracted is not a proper CSV file (".$i['extension'].").");
@@ -525,6 +525,7 @@ class InventoryService {
         if($resp){
             $info = pathinfo($this->configs['acenda']['subscription']['credentials']['file_url'].'/'.$filename);
             switch(strtolower($info["extension"])){
+                case "txt":
                 case "csv":
                 $this->CSVFileCheck('/tmp/'.$filename);
                 break;
