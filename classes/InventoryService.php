@@ -62,6 +62,11 @@ class InventoryService {
             $this->configs['acenda']['subscription']['credentials']['key_type'] = 'sku';
         }
         $this->key =  $this->configs['acenda']['subscription']['credentials']['key_type'];
+        if($this->key="other" && !empty($this->configs['acenda']['subscription']['credentials']['key_custom'])) {
+            $this->key = $this->configs['acenda']['subscription']['credentials']['key_custom'];
+
+        } 
+
         $this->urlParts = parse_url($this->configs['acenda']['subscription']['credentials']['file_url']);
         if(empty($this->urlParts['host'])) {
             $this->host= $this->configs['acenda']['subscription']['credentials']['file_url'];
