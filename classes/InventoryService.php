@@ -62,7 +62,7 @@ class InventoryService {
             $this->configs['acenda']['subscription']['credentials']['key_type'] = 'sku';
         }
         $this->key =  $this->configs['acenda']['subscription']['credentials']['key_type'];
-        if($this->key="other" && !empty($this->configs['acenda']['subscription']['credentials']['key_custom'])) {
+        if($this->key=="other" && !empty($this->configs['acenda']['subscription']['credentials']['key_custom'])) {
             $this->key = $this->configs['acenda']['subscription']['credentials']['key_custom'];
 
         } 
