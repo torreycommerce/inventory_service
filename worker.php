@@ -2,6 +2,9 @@
 error_reporting(E_ALL);
 ini_set('display_errors',1);
 
+
+
+
 //  AcendaWorker\Base handles: gearman connection - loads of configs - init of logger
 require_once __DIR__."/../../core/Base.php";
 require_once(__DIR__ . "/classes/InventoryService.php");

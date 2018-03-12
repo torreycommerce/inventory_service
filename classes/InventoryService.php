@@ -66,7 +66,7 @@ class InventoryService {
             $this->key = $this->configs['acenda']['subscription']['credentials']['key_custom'];
 
         } 
-
+        echo "USING KEY: ".$this->key."\n";
         $this->urlParts = parse_url($this->configs['acenda']['subscription']['credentials']['file_url']);
         if(empty($this->urlParts['host'])) {
             $this->host= $this->configs['acenda']['subscription']['credentials']['file_url'];
