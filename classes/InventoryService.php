@@ -408,18 +408,19 @@ class InventoryService {
             ]);
     }
     private function getFileListFtp($url) {
-
         echo "connecting to ".$this->host."\nwith ".$this->username.":".$this->password."\n";
         $conn_id = ftp_connect($this->host,@$this->urlParts['port']?$this->urlParts['port']:21);
 
         if(@ftp_login($conn_id,$this->username, $this->password)) {
             ftp_pasv($conn_id, true);
+            echo "Getting file list for ".$this->remote_path."\n";
             $contents = ftp_nlist($conn_id,$this->remote_path);
             print_r($contents);
             return $contents;
         }
         else {
             array_push($this->errors, 'could not connect via ftp - '.$url);
+            echo "could not connect to ftp\n";
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
         }
