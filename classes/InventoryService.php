@@ -96,7 +96,8 @@ class InventoryService {
         $prefix = $this->configs['acenda']['subscription']['credentials']['file_prefix'];
         $files = $this->getFileList();
         if(is_array($files)) {
-            $files = array_reverse(sort($files));
+            sort($files);
+            $files = array_reverse($files);
             foreach($files as $file) {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
                 if(strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'csv' && strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'txt' ) continue;
