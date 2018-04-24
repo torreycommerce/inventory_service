@@ -102,7 +102,7 @@ class InventoryService {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
                 if(strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'csv' && strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'txt' ) continue;
                 echo "getting ". $file . "\n";
-                $this->getFile($file);               
+                if(!$this->getFile($file)) break;               
             }
         }
         $this->handleErrors();
@@ -412,7 +412,7 @@ class InventoryService {
     private function getFileListFtp($url) {
         echo "connecting to [".$this->host."\nwith ".$this->username.":".$this->password."]\n";
         $conn_id = ftp_connect($this->host,@$this->urlParts['port']?$this->urlParts['port']:21);
-        if(ftp_login($conn_id,$this->username, $this->password)) {
+        if(@ftp_login($conn_id,$this->username, $this->password)) {
             echo "Getting file list for ".$this->remote_path."\n";            
             ftp_pasv($conn_id, true);
             $contents = ftp_nlist($conn_id,$this->remote_path);
@@ -489,7 +489,7 @@ class InventoryService {
     }
     private function getFileFtp($url) {
         $conn_id = ftp_connect($this->host,@$this->urlParts['port']?$this->urlParts['port']:21);
-        if(!ftp_login($conn_id,$this->username, $this->password)) {
+        if(!@ftp_login($conn_id,$this->username, $this->password)) {
             array_push($this->errors, 'could not connect via ftp - '.$url);
             $this->logger->addError('could not connect via ftp - '.$url);
             return false;
@@ -547,6 +547,7 @@ class InventoryService {
         }else{
             array_push($this->errors, "The file provided at the URL ".$this->configs['acenda']['subscription']['credentials']['file_url'].'/'.$filename." couldn't be reached.");
             $this->logger->addError("The file provided at the URL ".$this->configs['acenda']['subscription']['credentials']['file_url'].'/'.$filename." couldn't be reached.");
+            return false;
         }
     }
 }
