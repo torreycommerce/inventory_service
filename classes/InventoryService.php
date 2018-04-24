@@ -96,6 +96,7 @@ class InventoryService {
         $prefix = $this->configs['acenda']['subscription']['credentials']['file_prefix'];
         $files = $this->getFileList();
         if(is_array($files)) {
+            $files = array_reverse(sort($files));
             foreach($files as $file) {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
                 if(strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'csv' && strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'txt' ) continue;
@@ -410,12 +411,11 @@ class InventoryService {
     private function getFileListFtp($url) {
         echo "connecting to [".$this->host."\nwith ".$this->username.":".$this->password."]\n";
         $conn_id = ftp_connect($this->host,@$this->urlParts['port']?$this->urlParts['port']:21);
-        echo "connected.\n";
         if(ftp_login($conn_id,$this->username, $this->password)) {
             echo "Getting file list for ".$this->remote_path."\n";            
             ftp_pasv($conn_id, true);
             $contents = ftp_nlist($conn_id,$this->remote_path);
-            print_r($contents);
+            //print_r($contents);
             return $contents;
         }
         else {
