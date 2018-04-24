@@ -97,7 +97,7 @@ class InventoryService {
         $files = $this->getFileList();
         if(is_array($files)) {
             sort($files);
-            $files = array_reverse($files);
+            //$files = array_reverse($files);
             foreach($files as $file) {
                 if($prefix && substr($file,0,strlen($prefix))!=$prefix) continue;
                 if(strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'csv' && strtolower(pathinfo($file, PATHINFO_EXTENSION))!== 'txt' ) continue;
