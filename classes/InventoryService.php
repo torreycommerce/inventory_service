@@ -541,7 +541,7 @@ class InventoryService {
                 break;
                 default:
                 array_push($this->errors, "The extension ".$info['extension']." is not allowed for the moment.");
-                $this->logger->addError("The extension ".$info['extension']." is not allowed for the moment.");
+                $this->logger->addError("The extension ".$info['extension']." is not allowed for the moment.");                
                 break;
             }
         }else{
@@ -549,5 +549,6 @@ class InventoryService {
             $this->logger->addError("The file provided at the URL ".$this->configs['acenda']['subscription']['credentials']['file_url'].'/'.$filename." couldn't be reached.");
             return false;
         }
+        return true;
     }
 }
