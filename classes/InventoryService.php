@@ -549,6 +549,6 @@ class InventoryService {
             $this->logger->addError("The file provided at the URL ".$this->configs['acenda']['subscription']['credentials']['file_url'].'/'.$filename." couldn't be reached.");
             return false;
         }
-        return true;
+        //return true;
     }
 }
